@@ -1,0 +1,6 @@
+alias: agent1
+name: k:929e05b703e610a1a85b2cbe22d449ef787bc02ef00b1a62c868b41820eee5ef
+fungible: coin
+predicate: keys-all
+publicKeys:
+  - 929e05b703e610a1a85b2cbe22d449ef787bc02ef00b1a62c868b41820eee5ef

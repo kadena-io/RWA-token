@@ -1,0 +1,209 @@
+{
+  "profiles": {
+    "default": {
+      "host": "http://localhost:8080",
+      "networkId": "development",
+      "chains": [
+        "0"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "profile": "default",
+      "code": "(ns.write-registry (read-string 'ns) (read-keyset 'ks) true)(define-namespace (read-string 'ns) (read-keyset 'ks) (read-keyset 'ks))",
+      "data": {
+        "ns": "RWA",
+        "ks": {
+          "keys": [
+            "368820f80c324bbc7c2b0610688a7da43e39f91d118732671cd9c7500ff43cca"
+          ],
+          "pred": "keys-all"
+        }
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/registry/claim-topics-registry-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/registry/identity-registry-storage-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/registry/trusted-issuers-registry-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/registry/identity-registry-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/compliances/compliance-compatible-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/compliance/compliance-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/roles/agent-role-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../contracts/real-world-asset/real-world-asset-v1.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "code": "(namespace (read-string 'ns)) (define-keyset (read-msg 'keyset-name) (read-keyset 'ks))",
+      "data": {
+        "ns": "RWA",
+        "keyset-name": "RWA.rwa-admin-keyset",
+        "ks": {
+          "keys": [
+            "8c806f9f6470a199718ba7bf336fb6c5723be132e2e6c0448f5fd7dff45e3386"
+          ],
+          "pred": "keys-all"
+        }
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/token-mapper.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "RWA.rwa-admin-keyset"}]
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/mvp-token.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "RWA.rwa-admin-keyset"}]
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/compliances/max-investors-compliance.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "RWA.rwa-admin-keyset"}]
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/compliances/max-balance-compliance.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "RWA.rwa-admin-keyset"}]
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/compliances/supply-limit-compliance.pact",
+      "data": {
+        "ns": "RWA"
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "RWA.rwa-admin-keyset"}]
+    },
+    {
+      "profile": "default",
+      "code": "(namespace (read-string 'ns)) (define-keyset (read-msg 'keyset-name) (read-keyset 'ks))",
+      "data": {
+        "ns": "user",
+        "keyset-name": "user.faucet-admin-keyset",
+        "ks": {
+          "keys": [
+            "368820f80c324bbc7c2b0610688a7da43e39f91d118732671cd9c7500ff43cca"
+          ],
+          "pred": "keys-all"
+        }
+      },
+      "sender": "sender00"
+    },
+    {
+      "profile": "default",
+      "codeFile": "../mvp/faucet.pact",
+      "data": {
+        "coin-faucet-namespace": "user",
+        "coin-faucet-admin-keyset-name": "user.faucet-admin-keyset",
+        "init": true
+      },
+      "sender": "sender00",
+      "sigs": [{"signer": "sender00"}]
+    },
+    {
+      "profile": "default",
+      "code": "(coin.transfer-create (read-string 'sender) (read-string 'receiver) (read-keyset 'receiver-ks) 1000.0) (coin.transfer (read-string 'sender) (read-string 'faucet-account) 1000000.0) ",
+      "data": {
+        "sender": "sender00",
+        "faucet-account": "c:jaMj9YUQoqdlWbLB7ZKgB0CC9lVeaAS_Q3XqFgbwQ1c",
+        "receiver": "k:af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8",
+        "receiver-ks": {
+          "keys": [
+            "af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8"
+          ],
+          "pred": "keys-all"
+        }
+      },
+      "sender": "sender00",
+      "sigs": [{
+        "signer": "sender00",
+        "caps":
+          [[  "coin.TRANSFER",
+              "sender00",
+              "k:af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8",
+              1000.0
+            ],
+          [  "coin.TRANSFER",
+              "sender00",
+              "c:jaMj9YUQoqdlWbLB7ZKgB0CC9lVeaAS_Q3XqFgbwQ1c",
+              1000000.0
+            ],
+            ["coin.GAS"]
+          ]
+        }]
+      }
+  ]
+}

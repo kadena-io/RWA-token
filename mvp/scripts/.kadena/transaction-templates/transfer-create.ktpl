@@ -1,0 +1,23 @@
+
+code: |-
+  (coin.transfer-create "{{{account:from}}}" "{{{account:to}}}" (read-keyset "account-guard") {{{decimal:amount}}})
+data:
+  account-guard:
+    keys:
+      - {{{key:to}}}
+    pred: {{{predicate}}}
+meta:
+  chainId: "{{chain-id}}"
+  sender: {{{account:from}}}
+  gasLimit: 2000
+  gasPrice: 0.00000001
+  ttl: 7200
+signers:
+  - public: {{key:from}}
+    caps:
+      - name: "coin.TRANSFER"
+        args: [{{{account:from}}}, {{{account:to}}}, {{decimal:amount}}]
+      - name: "coin.GAS"
+        args: []
+networkId: "{{network:networkId}}"
+type: exec

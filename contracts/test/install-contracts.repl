@@ -1,0 +1,39 @@
+(begin-tx)
+    (env-data
+        { 'ns-admin-keyset: []
+        , 'ns-genesis-keyset:[]
+        , 'ns-operate-keyset:[] })
+    (load "../root/fungible-v2.pact")
+    (load "../root/fungible-xchain-v1.pact")
+    (load "../root/coin.pact")
+    (load "../root/ns.pact")
+
+    (expect "root modules are fixed to latest version"
+      [ "YxE-KgC6JmKmCcgKTJmlEn_I58I4EXmhfrvzX7berYk" ; v2
+        "h89ic3ghz23Rjk0pHNKtFOwrvSs7mbmuqloVXOhl2GI" ; v1
+        "3iIBQdJnst44Z2ZgXoHPkAauybJ0h85l_en_SGHNibE" ; v6
+        "eAnZwwSKgXn0OT0gYVyuvr7BdEoUE9qgDx_jgnKoxlI" ; v2
+      ]
+      (map (lambda (x) (at "hash" (describe-module x))) 
+        [ "fungible-v2"
+          "fungible-xchain-v1"
+          "coin"
+          "ns"
+        ]))
+        
+    (describe-module "ns")
+    
+    (env-data { 'ns: "RWA"})
+
+    (define-namespace (read-msg 'ns) (sig-keyset) (sig-keyset))
+
+    (load "../registry/claim-topics-registry-v1.pact")
+    (load "../registry/identity-registry-storage-v1.pact")
+    (load "../registry/trusted-issuers-registry-v1.pact")
+    (load "../registry/identity-registry-v1.pact")
+    (load "../roles/agent-role-v1.pact")
+    (load "../compliance/compliance-v1.pact")
+    (env-data { 'ns: "RWA"})
+    (load "../real-world-asset/real-world-asset-v1.pact")
+
+(commit-tx)

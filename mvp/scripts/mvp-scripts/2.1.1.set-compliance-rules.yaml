@@ -1,0 +1,23 @@
+code: |-
+  (RWA.mvp-token.set-compliance-parameters (read-msg 'compliance-parameters))
+signers:
+  - public: {{key:sender}}
+    caps: []
+  - public: {{key:agent}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["agent-admin"]
+data:
+  compliance-parameters:
+    supply-limit: 90.0
+    max-investors:
+      int: 10
+    max-balance-per-investor: 50.0
+  agent: {{account:agent}}
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

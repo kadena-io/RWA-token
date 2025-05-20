@@ -1,0 +1,24 @@
+code: |-
+  (RWA.mvp-token.add-agent (read-string 'agent) (read-keyset 'agent_guard))
+signers:
+  - public: {{key:owner}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["owner"]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+  agent: "{{account:agent}}"
+  agent_guard:
+    keys: ["{{key:agent}}"]
+    pred: "keys-all"
+  roles: ["agent-admin", "freezer", "transfer-manager"]
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

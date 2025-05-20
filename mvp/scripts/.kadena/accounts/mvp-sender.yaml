@@ -1,0 +1,6 @@
+alias: mvp-sender
+name: k:af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8
+fungible: coin
+predicate: keys-all
+publicKeys:
+  - af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8

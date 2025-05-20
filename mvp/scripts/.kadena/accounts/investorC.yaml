@@ -1,0 +1,6 @@
+alias: investorC
+name: k:c1413bbf67372e80109559163d1f83a2675bf73ac5f2b82efbdec4fdab470b2a
+fungible: coin
+predicate: keys-all
+publicKeys:
+  - c1413bbf67372e80109559163d1f83a2675bf73ac5f2b82efbdec4fdab470b2a

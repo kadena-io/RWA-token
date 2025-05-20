@@ -1,0 +1,21 @@
+code: |-
+  (RWA.mvp-token.transfer (read-string 'investorA)  (read-string 'investorB) 1.0)
+signers:
+  - public: {{key:investorA}}
+    caps:
+      - name: "RWA.mvp-token.TRANSFER"
+        args: ["{{account:investorA}}", "{{account:investorB}}", 1.0]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+  investorA: {{account:investorA}}
+  investorB: {{account:investorB}}
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

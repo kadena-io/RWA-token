@@ -1,0 +1,6 @@
+alias: owner
+name: k:8c806f9f6470a199718ba7bf336fb6c5723be132e2e6c0448f5fd7dff45e3386
+fungible: coin
+predicate: keys-all
+publicKeys:
+  - 8c806f9f6470a199718ba7bf336fb6c5723be132e2e6c0448f5fd7dff45e3386

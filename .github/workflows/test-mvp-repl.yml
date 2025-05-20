@@ -1,0 +1,27 @@
+name: Test RWA contracts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test-pact:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Pact
+        uses: ./.github/actions/setup-pact
+        with:
+          version: "5.2"
+
+      - name: Test mvp/mvp.repl
+        uses: ./.github/actions/repl
+        with:
+          target: mvp/mvp.repl

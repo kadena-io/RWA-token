@@ -1,0 +1,19 @@
+code: |-
+  (RWA.mvp-token.set-compliance [RWA.max-balance-compliance-v1 RWA.max-investors-compliance-v1 ])
+signers:
+  - public: {{key:owner}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["owner"]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

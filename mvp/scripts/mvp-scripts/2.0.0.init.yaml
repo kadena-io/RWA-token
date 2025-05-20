@@ -1,0 +1,23 @@
+code: |-
+  (RWA.mvp-token.init "mvp-token" "MVP" 0 "kadenaID" [RWA.max-balance-compliance-v1 RWA.supply-limit-compliance-v1 RWA.max-investors-compliance-v1] false (keyset-ref-guard "RWA.rwa-admin-keyset"))
+signers:
+  - public: {{key:sender}}
+    caps: []
+  - public: {{key:owner}}
+    caps: []
+  - public: {{key:compliance-owner}}
+    caps: []
+data:
+  owner_guard:
+    keys: ["{{key:owner}}"]
+    pred: "keys-all"
+  compliance-owner:
+    keys: ["{{key:compliance-owner}}"]
+    pred: "keys-all"
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

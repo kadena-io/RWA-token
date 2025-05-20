@@ -1,0 +1,1361 @@
+; ## Keys used in the test
+;                              KEY                                  |  ROLE
+;  ---------------------------------------------------------------- | ----------
+;  ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9 | agent1  
+;  c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef | investor-a
+;  18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157 | investor-b
+;  b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b | investor0
+;  e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f | investor1
+;  456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92 | investor2
+;  eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b | investor3
+;  51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e | investor4
+;  f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202 | investor5
+;  020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145 | investor6
+;  2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f | investor7
+;  26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821 | investor8
+;  837b17f0cb12bfdeec8b28fc354ea86596eb9116ba521997832eac137bfef72a | investor9
+;  304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640 | investor-a-new
+
+(load "../contracts/test/install-contracts.repl")
+
+; ## 1. Issuer (Owner) Contract Creation:
+(begin-tx "Load contracts")
+
+(env-data { 'ns: "RWA"})
+
+(load "./compliances/compliance-compatible-v1.pact")
+
+(load "./token-mapper-v1.pact")
+(typecheck "RWA.token-mapper-v1")
+
+(load "./mvp-token.pact")
+;  (typecheck "RWA.mvp-token")
+
+(load "./compliances/max-balance-compliance-v1.pact")
+(load "./compliances/max-investors-compliance-v1.pact")
+(load "./compliances/supply-limit-compliance-v1.pact")
+(typecheck "RWA.max-balance-compliance-v1")
+(typecheck "RWA.max-investors-compliance-v1")
+(typecheck "RWA.supply-limit-compliance-v1")
+(env-exec-config ["DisablePact52"])
+(env-gasmodel 'table)(env-gaslimit 150000)
+
+(env-data {
+  "admin-keyset": {"keys": ["admin"], "pred": "keys-all"}
+  })
+(define-keyset "RWA.rwa-admin-keyset" (read-keyset 'admin-keyset))
+(create-principal (describe-keyset "RWA.rwa-admin-keyset"))
+
+(env-data {"ns": "RWA", "owner-guard":{"pred": "keys-all", "keys": ["owner"]}} )
+
+(env-sigs [
+  { 'key: 'falseAdmin
+  ,'caps: [(RWA.mvp-token.GOV)]
+  }
+])
+
+(expect-failure 
+  "init fails without admin sig"
+  "Keyset failure (keys-all): [admin...]"
+  (RWA.mvp-token.init "mvp-token" "MVP" 0 "kadenaID" [RWA.max-balance-compliance-v1 RWA.supply-limit-compliance-v1 RWA.max-investors-compliance-v1] false (read-keyset "owner-guard")))
+
+(env-sigs [
+  { 'key: 'admin
+  ,'caps: [(RWA.mvp-token.GOV)]
+  }
+])
+
+(expect-failure 
+  "init fails with duplicate compliances"
+  "CMPL-DUP-001"
+  (RWA.mvp-token.init "mvp-token" "MVP" 0 "kadenaID" [RWA.max-balance-compliance-v1 RWA.max-balance-compliance-v1 RWA.supply-limit-compliance-v1 RWA.max-investors-compliance-v1] false (read-keyset "owner-guard")))
+  
+(expect "initiate contract"
+  true
+  (RWA.mvp-token.init "mvp-token" "MVP" 0 "kadenaID" [RWA.max-balance-compliance-v1 RWA.supply-limit-compliance-v1 RWA.max-investors-compliance-v1] false (read-keyset "owner-guard")))
+
+(expect "get owner guard"
+  (read-keyset 'owner-guard)
+  (RWA.mvp-token.get-owner-guard))
+
+(expect "get token name"
+  "mvp-token"
+  (RWA.mvp-token.name))
+
+(expect "get token symbol"
+  "MVP"
+  (RWA.mvp-token.symbol))
+  
+(expect "get decimals"
+  0
+  (RWA.mvp-token.decimals))
+
+(expect "get precision"
+  0
+  (RWA.mvp-token.precision))
+
+(expect "get kadenaID"
+  "kadenaID"
+  (RWA.mvp-token.kadenaID))
+
+(expect "events"
+  [ {"name": "RWA.mvp-token.UPDATED-TOKEN-INFORMATION","params": ["mvp-token" "MVP" 0 "0.0" "kadenaID"]}
+    {"name": "RWA.mvp-token.COMPLIANCE-UPDATED","params": [[RWA.max-balance-compliance-v1 RWA.max-investors-compliance-v1 RWA.supply-limit-compliance-v1]]}
+    {"name": "RWA.mvp-token.COMPLIANCE-PARAMETERS","params": [{"max-balance-per-investor": -1.0,"max-investors": -1,"supply-limit": -1.0}]}
+  ]
+  (map (remove "module-hash")  (env-events true))
+)
+
+(commit-tx)
+
+
+;; test init again 
+(begin-tx)
+(env-data {"ns": "RWA", "owner-guard":{"pred": "keys-all", "keys": ["owner"]}} )
+
+(env-sigs [
+  { 'key: 'admin
+  ,'caps: [(RWA.mvp-token.GOV)]
+  }
+])
+
+(expect-failure "trying to init the same token again"
+  "Error during database operation: Value already found while in Insert mode in table RWA.mvp-token_token at key "
+  (RWA.mvp-token.init "mvp-token" "MVP" 0 "kadenaID" [RWA.max-balance-compliance-v1 RWA.supply-limit-compliance-v1 RWA.max-investors-compliance-v1] false (read-keyset "owner-guard")))
+(rollback-tx)
+
+; ## 2. Assign Agent Role:
+(begin-tx)
+(env-sigs [
+  { 'key: 'owner
+  ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]
+  }
+  ])
+
+  (env-data {"agent-guard":{"pred": "keys-all", "keys": ["ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"]}, "roles": ["freezer", "agent-admin", "transfer-manager"]} )
+
+  (RWA.mvp-token.add-agent "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9" (read-keyset 'agent-guard))
+
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (create-principal (read-keyset 'investor-a))
+  (expect "events"
+     [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["owner"]},
+       {"name": "RWA.mvp-token.AGENT-ADDED","params": ["k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"]},
+       {"name": "RWA.mvp-token.AGENT-ROLES-UPDATED","params": ["k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9" ["agent-admin", "freezer", "transfer-manager"]]}
+      ]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+; ## 3. Whitelist Investors (Agent Action):
+(begin-tx)
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+(env-sigs [
+  { 'key: 'owner
+  ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]
+  }])
+
+  ;;register investor
+  (RWA.mvp-token.register-identity "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" (read-keyset 'investor-a) "" 1)
+
+  (expect "events"
+     [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["owner"]}
+      {"name": "RWA.mvp-token.IDENTITY-REGISTERED","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" (read-keyset 'investor-a) ""]}
+    ]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+(begin-tx "re-registering a registered identity fails")
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (env-sigs [
+    { 'key: 'owner
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]
+    }])
+    
+  (expect-failure "Registering an identity that is already registered fails" 
+    "IDR-003"
+    (RWA.mvp-token.register-identity "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" (read-keyset 'investor-a) "" 1)
+  )
+(commit-tx)
+
+; ## 3. Whitelist Investors (Agent Action):
+(begin-tx)
+  (env-data {
+    "investor-b": {
+      "keys": ["18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+(env-sigs [
+  { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")]
+  }])
+
+  ;;register agent
+  (RWA.mvp-token.register-identity "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" (read-keyset 'investor-b) "" 1)
+
+  (expect "events"
+     [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["agent-admin"]}
+     {"name": "RWA.mvp-token.IDENTITY-REGISTERED","params": ["k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" (read-keyset 'investor-b) ""]}]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+
+;; batch whitelist
+(begin-tx)
+  (env-data {
+    "investor0": { "keys": ["b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"], "pred": "keys-all" },
+    "investor1": { "keys": ["e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f"], "pred": "keys-all" },
+    "investor2": { "keys": ["456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92"], "pred": "keys-all" },
+    "investor3": { "keys": ["eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b"], "pred": "keys-all" },
+    "investor4": { "keys": ["51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e"], "pred": "keys-all" },
+    "investor5": { "keys": ["f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202"], "pred": "keys-all" },
+    "investor6": { "keys": ["020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145"], "pred": "keys-all" },
+    "investor7": { "keys": ["2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f"], "pred": "keys-all" },
+    "investor8": { "keys": ["26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821"], "pred": "keys-all" },
+    "investor9": { "keys": ["837b17f0cb12bfdeec8b28fc354ea86596eb9116ba521997832eac137bfef72a"], "pred": "keys-all" },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (RWA.mvp-token.batch-register-identity
+     ["k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 
+      "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f"
+      "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92"
+      "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b"
+      "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e"
+      "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202"
+      "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145"
+      "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f"
+      "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821"
+      "k:837b17f0cb12bfdeec8b28fc354ea86596eb9116ba521997832eac137bfef72a"]
+     [(read-keyset "investor0") (read-keyset "investor1") (read-keyset "investor2") (read-keyset "investor3") (read-keyset "investor4") (read-keyset "investor5") (read-keyset "investor6") (read-keyset "investor7") (read-keyset "investor8") (read-keyset "investor9")]
+     ["" "" "" "" "" "" "" "" "" ""]
+     [0 0 0 0 0 0 0 0 0 0]
+  )
+(commit-tx)
+
+; ## 4. Distribute Tokens:
+(begin-tx)
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  ;; Locked account cannot be minted. 
+; ## 8. Implement Token Lock-up (Agent Action):
+    (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+      }]
+    )
+    (RWA.mvp-token.set-address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" true)
+
+    (expect "events"
+      [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]} {"name": "RWA.mvp-token.ADDRESS-FROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" true]}]
+      (map (remove "module-hash")  (env-events true))
+    )
+
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+             (RWA.mvp-token.TRANSFER "" "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0)]
+    }])
+
+  (expect-failure "Cannot mint to a locked address" 
+    "ACC-FRZ-001"
+    (RWA.mvp-token.mint "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0)
+  )
+
+  (rollback-tx)
+
+  ;; unfreeze 
+(begin-tx)
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+            (RWA.mvp-token.TRANSFER "" "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0)]
+    }])
+
+  (expect "Mint succeeds after unfreeze"
+    true  
+    (RWA.mvp-token.mint "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0)
+  )
+
+  (expect "events"
+    [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["transfer-manager"]}
+      {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0]}
+      {"name": "RWA.mvp-token.RECONCILE","params": [50.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 50.0,"previous": 0.0}]}
+      {"name": "RWA.mvp-token.SUPPLY","params": [50.0]}
+    ]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+(begin-tx)
+
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  ;;check if whitelisted
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+             (RWA.mvp-token.TRANSFER  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "" 50.0)]
+    }])
+
+  (RWA.mvp-token.burn "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 50.0)
+
+(rollback-tx)
+
+(begin-tx)
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+    ;;check if whitelisted
+    (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+              (RWA.mvp-token.TRANSFER "" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  1.0)
+              (RWA.mvp-token.TRANSFER "" "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821" 1.0)
+              (RWA.mvp-token.TRANSFER "" "k:837b17f0cb12bfdeec8b28fc354ea86596eb9116ba521997832eac137bfef72a" 1.0)
+              ]
+      }])
+
+    (expect-failure  "Array length doesn't match in batch functions"
+      "BATCH-ARR-001"
+      (RWA.mvp-token.batch-mint 
+       ["k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 
+        "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f"
+        "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92"
+        "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b"
+        "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e"
+        "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202"
+        "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145"
+        "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f"
+        "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821"
+        "k:837b17f0cb12bfdeec8b28fc354ea86596eb9116ba521997832eac137bfef72a"]
+        [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0]))
+
+    (RWA.mvp-token.batch-mint
+      [ "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 
+        "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f"
+        "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92"
+        "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b"
+        "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e"
+        "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202"
+        "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145"
+        "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f"
+        "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821"
+      ]
+      [1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0])
+
+    (expect "events"
+      [ 
+        {"name": "RWA.mvp-token.ONLY-AGENT","params": ["transfer-manager"]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [51.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [52.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [53.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [54.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [55.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [56.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:020736f44c7ad6c9147fb0d3fac58d884b410510f0ac6d9653ef46164ba38145","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [57.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:2aeb9e35c4dd94548e0202c798fc4963f9b4631f4bbf2cd1560396c5f596894f","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [58.0]}
+        {"name": "RWA.mvp-token.TRANSFER","params": ["" "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821" 1.0]}
+        {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "","current": 0.0,"previous": 0.0} {"account": "k:26fd13f87f8162354e58595f41689d6fdebcd30e6242814b97271dcda8f94821","current": 1.0,"previous": 0.0}]}
+        {"name": "RWA.mvp-token.SUPPLY","params": [59.0]}
+      ]
+      (map (remove "module-hash")  (env-events true))
+    )
+
+(commit-tx)
+
+(begin-tx)
+  (env-data {
+    "investor-b": {
+      "keys": ["18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"], "pred": "keys-all"
+    } , "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  ;;check if whitelisted
+  (env-sigs [
+    { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+    ,'caps: [
+    (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 50.0)
+    ]}])
+    
+    (expect
+      "transferring to investor-b-address succeeds"
+      "Transfer successful"
+      (RWA.mvp-token.transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+
+
+(rollback-tx)
+
+; ## 4. Set Compliance parameters:
+
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")]
+    }
+  ])
+
+  (env-data {
+      "compliance-parameters":
+        {
+          "supply-limit": 90.0,
+          "max-investors": 10,
+          "max-balance-per-investor": 50.0
+        },
+      "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    }
+  )
+
+  (expect-failure "validates max-investors"
+    "CMPL-MI-001"
+    (RWA.mvp-token.set-max-investors -2))
+
+  (expect-failure "validates max-balance-per-investor"
+    "CMPL-MBPI-001"
+    (RWA.mvp-token.set-max-balance-per-investor -2.0))
+
+  (expect-failure "validates supply-limit"
+    "CMPL-SL-001"
+    (RWA.mvp-token.set-supply-limit -2.0))
+
+  (expect "agent sets compliance parameters"
+    true
+    (RWA.mvp-token.set-compliance-parameters (read-msg 'compliance-parameters )))
+
+  (expect "get-compliance-parameters"
+    {"max-balance-per-investor": 50.0,"supply-limit": 90.0,"max-investors": 10}
+    (RWA.mvp-token.get-compliance-parameters))
+
+  (expect "returns compliances"
+    [RWA.max-balance-compliance-v1 RWA.max-investors-compliance-v1 RWA.supply-limit-compliance-v1]
+    (RWA.mvp-token.compliance))
+
+(commit-tx)
+
+(begin-tx "Test Updating compliance parameters")
+
+  (env-data {
+      "same-compliance-parameters":
+        {
+          "supply-limit": 90.0,
+          "max-investors": 10,
+          "max-balance-per-investor": 50.0
+        },
+      "diff-compliance-parameters":
+        {
+          "supply-limit": 92.0,
+          "max-investors": 14,
+          "max-balance-per-investor": 50.0
+        },
+      "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    }
+  )
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")]
+    }
+  ])
+
+  (expect-failure "Can't set the same max-investors"
+    "GEN-IMPL-002"
+    (RWA.mvp-token.set-max-investors 10))
+
+  (expect-failure "Can't set the same supply-limit"
+    "GEN-IMPL-002"
+    (RWA.mvp-token.set-supply-limit 90.0))
+
+  (expect-failure "Can't set the same max-balance-per-investor"
+    "GEN-IMPL-002"
+    (RWA.mvp-token.set-max-balance-per-investor 50.0))
+
+  (expect-failure "Can't set the same max-balance-per-investor"
+      "GEN-IMPL-002"
+      (RWA.mvp-token.set-compliance-parameters (read-msg 'same-compliance-parameters)))
+
+  (expect "Successfully set compliance parameters with same and different values "
+    true
+    (RWA.mvp-token.set-compliance-parameters (read-msg 'diff-compliance-parameters)))
+
+(rollback-tx)
+
+(begin-tx)
+  (env-data {
+    "investor-b": {
+      "keys": ["18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"], "pred": "keys-all"
+    } , "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+    ,'caps: [
+    (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 50.0)
+    ]}])
+  
+  (expect-failure
+    "transferring to investor-b-address fails because of Max Investors compliance check"
+    "CMPL-MI-002"
+    (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+  
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [
+    (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 50.0)
+    (RWA.mvp-token.ONLY-AGENT "transfer-manager")
+    ]}])
+    
+  (expect
+    "forced-transfer bypasses compliance check"
+    "Forced transfer successful"
+    (RWA.mvp-token.forced-transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+
+(rollback-tx)
+
+(begin-tx)
+  (env-data {
+    "investor-b": {
+      "keys": ["18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"], "pred": "keys-all"
+    } , "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (env-sigs [
+    { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+    ,'caps: [
+    (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 50.0)
+    ]}])
+    
+    (expect-failure
+      "transferring to investor-b-address fails becaue of Max Investors limit"
+      "CMPL-MI-002"
+      (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+
+   (expect "transfer succeeds if investor-a drains its account and transfers the amount to investor b"
+      "Transfer successful"
+      (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 50.0))
+
+(rollback-tx)
+
+(begin-tx)
+  (env-data {
+    "investor-b": {
+      "keys": ["18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"], "pred": "keys-all"
+    } , "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  ;;check if whitelisted
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+             (RWA.mvp-token.TRANSFER "" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 30.0)]
+    }])
+
+  (expect-failure
+    "minting to investor-b-address fails"
+    "CMPL-MI-003"
+    (RWA.mvp-token.mint "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157"  30.0)
+    )
+
+  (expect "events"
+     []
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(rollback-tx)
+
+; ## 7. Exceed Supply Limit Attempt (Failed Transaction):
+(begin-tx)
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+             (RWA.mvp-token.TRANSFER "" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  32.0)]
+    }])
+
+  (expect-failure
+    "fails because exceeds max supply"
+    "CMPL-SL-002"
+    (RWA.mvp-token.mint "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  32.0))
+
+  (expect "events"
+     []
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+; ## 8. Implement Token Lock-up (Agent Action):
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.set-address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" true)
+
+  (expect "events"
+     [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]} {"name": "RWA.mvp-token.ADDRESS-FROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" true]}]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+; ## 9. Failure of Transfer During Lock-up:
+(begin-tx)
+(env-sigs [
+  { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+  ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 101.0)]
+  }])
+
+  (expect-failure "fails because sender account is frozen" "ACC-FRZ-001"
+    (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+
+(commit-tx)
+
+(begin-tx)
+
+;; Successful forced transfer During lock-up:
+(env-sigs [
+  { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  1.0)
+           (RWA.mvp-token.ONLY-AGENT "transfer-manager")
+          ]
+  }])
+
+  (expect "forced-transfer can bypass freeze status on sender or receiver"
+    "Forced transfer successful"
+    (RWA.mvp-token.forced-transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  1.0))
+
+(rollback-tx)
+
+; ## 10. Manual Expiry of Lock-up (Unfreeze):
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef")
+  (RWA.mvp-token.get-frozen-tokens  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef")
+  (RWA.mvp-token.set-address-frozen  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" false)
+
+  (expect "events"
+     [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]} {"name": "RWA.mvp-token.ADDRESS-FROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" false]}]
+    (map (remove "module-hash")  (env-events true))
+  )
+(commit-tx)
+
+(begin-tx)
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")]
+    }]
+  )
+  (expect "Get agent roles of agent1" 
+    ["agent-admin" "freezer" "transfer-manager"]
+    (RWA.mvp-token.get-agent-roles "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9" )
+  )
+
+  (expect-failure "Cannot update agent roles with the same roles list"
+    "GEN-IMPL-002"
+    (RWA.mvp-token.update-agent-roles "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9" ["freezer" "transfer-manager" "agent-admin" ])
+  )
+
+  (expect "Agent role update succeedss"
+    true
+    (RWA.mvp-token.update-agent-roles "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9" ["freezer"])
+  )
+
+(rollback-tx)
+
+; ## 11. Successful Token Transfer Post-Lock-up:
+(begin-tx)
+
+(env-sigs [
+  { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+  ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  2.0) ]
+  }])
+
+(RWA.mvp-token.batch-transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" ["k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" ] [1.0 1.0])
+
+(expect "events"
+[ {"name": "RWA.mvp-token.TRANSFER","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  1.0]} 
+  {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 49.0,"previous": 50.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" ,"current": 2.0,"previous": 1.0}]} 
+  {"name": "RWA.mvp-token.TRANSFER","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  1.0]} 
+  {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 48.0,"previous": 49.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" ,"current": 3.0,"previous": 2.0}]}]
+  (map (remove "module-hash")  (env-events true))
+)
+
+(rollback-tx)
+
+
+; ## Lock up receiver and transfer fails.  
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+
+  (RWA.mvp-token.set-address-frozen "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" true)
+
+  (expect "events"
+     [{"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]} {"name": "RWA.mvp-token.ADDRESS-FROZEN","params": ["k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" true]}]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+  (env-sigs [
+    { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+    ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0) ]
+    }])
+
+  (expect-failure "fails because receiver account is frozen" 
+    "ACC-FRZ-001"
+    (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0)) 
+  
+  ;; Successful forced transfer 
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 101.0)
+            (RWA.mvp-token.ONLY-AGENT "transfer-manager")
+            ]
+    }])
+
+  (expect "forced-transfer bypasses the receiver freeze status"
+    "Forced transfer successful"
+    (RWA.mvp-token.forced-transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:18284ed8ed0c8a4fd440eef4912f26cc445b68bb730b0b732a557aeee1002157" 1.0))
+  
+(rollback-tx)
+
+(begin-tx)
+
+(env-sigs [
+  { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+  ,'caps: [ (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"  3.0)
+             ]
+  }])
+(RWA.mvp-token.get-balance "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef")
+(RWA.mvp-token.batch-transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" ["k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"] [1.0 2.0])
+
+(expect "events"
+  [ {"name": "RWA.mvp-token.TRANSFER","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 49.0,"previous": 50.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 2.0,"previous": 1.0}]} 
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 2.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [2.0 {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 47.0,"previous": 49.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 4.0,"previous": 2.0}]}
+  ]
+  (map (remove "module-hash")  (env-events true))
+)
+
+(commit-tx)
+
+(begin-tx)
+
+(env-sigs [
+  { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")
+           (RWA.mvp-token.TRANSFER "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0)
+           (RWA.mvp-token.TRANSFER "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0)
+           (RWA.mvp-token.TRANSFER "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0)
+           (RWA.mvp-token.TRANSFER "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0)
+           (RWA.mvp-token.TRANSFER "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0)
+          ]
+  }])
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (expect 
+    "batch forced-transfer succeeds" 
+    ["Forced transfer successful" "Forced transfer successful" "Forced transfer successful" "Forced transfer successful" "Forced transfer successful"]
+    (RWA.mvp-token.batch-forced-transfer
+    ["k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f" 
+     "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92" 
+     "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b" 
+     "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e" 
+     "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202" ]
+    ["k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"
+     "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"
+     "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"
+     "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"
+     "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b"
+    ]
+    [1.0 1.0 1.0 1.0 1.0])
+  )
+
+  (expect "events"
+  [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["transfer-manager"]} 
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:e6e2d507cfa7027af768f002a4c08fec59c2d5f52de00932946675c10af4f76f","current": 0.0,"previous": 1.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 5.0,"previous": 4.0}]} 
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:456b76875d6cba7d2e683b8418c5f03ce4ada57431703adda0af615f569cdc92","current": 0.0,"previous": 1.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 6.0,"previous": 5.0}]} 
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:eb25d6222e98cc3e6345e15332cf8ddb7ce33ea4b327106f822f358cd952a97b","current": 0.0,"previous": 1.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 7.0,"previous": 6.0}]} 
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]} 
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:51d7cb9c91b1067bd2209bf4280f0250db860d8d4beab1e649e0f65a5e62472e","current": 0.0,"previous": 1.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 8.0,"previous": 7.0}]}
+    {"name": "RWA.mvp-token.TRANSFER","params": ["k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 1.0]}
+    {"name": "RWA.mvp-token.RECONCILE","params": [1.0 {"account": "k:f3dc6f062ee45ad1d53811fdaf84cf1800eb9aaaf6ea579af156929f3411b202","current": 0.0,"previous": 1.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 9.0,"previous": 8.0}]}
+  ]
+  (map (remove "module-hash")  (env-events true))
+)
+
+(commit-tx)
+
+(begin-tx)
+(env-sigs [
+  { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer") ]
+  }])
+(commit-tx)
+
+; ## 12. Compliance Check on Maximum Balance Limit:
+(begin-tx)
+(env-sigs [
+  { 'key: "c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"
+  ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 47.0) ]
+  }])
+
+  (expect "get investor-a balance"
+    9.0
+    (RWA.mvp-token.get-balance "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b")
+  )
+
+  (expect-failure "fails because exceeds compliance max balance" "CMPL-MBPI-002" (RWA.mvp-token.transfer  "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"  "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 42.0))
+
+(commit-tx)
+
+; ## 13. Attempted Transfer to Non-Whitelisted Investor (Failed Transaction):
+(begin-tx)
+(env-data {"investor-c": {"keys": ["c"], "pred": "keys-all"}})
+(expect-failure "create-account cannot be called other than in register-identity" 
+  "require-capability: not granted: (RWA.mvp-token.INTERNAL)"
+  (RWA.mvp-token.create-account "investor-c-address" (read-keyset 'investor-c)))
+(commit-tx)
+
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (expect "Agent with freezer role freezes 10 partial tokens"
+    "Partial Tokens Frozen"
+    (RWA.mvp-token.freeze-partial-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 10.0)
+  )
+
+  (expect "events"
+    [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]}
+      {"name": "RWA.mvp-token.TOKENS-FROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 10.0]}
+    ]
+    (map (remove "module-hash")  (env-events true))
+  )
+
+(commit-tx)
+
+(begin-tx)
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (expect "Agent with freezer role freezes 5 more partial tokens"
+    "Partial Tokens Frozen"
+    (RWA.mvp-token.freeze-partial-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 5.0)
+  )
+
+  (expect "events"
+    [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]}
+      {"name": "RWA.mvp-token.TOKENS-FROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 5.0]}
+    ]
+    (map (remove "module-hash")  (env-events true))
+  )  
+(commit-tx)
+
+(begin-tx)
+
+(use RWA.mvp-token)
+
+  (expect "Investor A balance's partial frozen balance is 15.0"
+    15.0
+    (RWA.mvp-token.get-frozen-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"))
+    
+  (expect "investor A is not frozen"
+    false
+    (address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"))
+
+  ;; Successful forced transfer During lock-up:
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 34.0)
+            (RWA.mvp-token.ONLY-AGENT "transfer-manager")
+            ]
+    }])
+
+  (expect "forced-transfer automatically unfreezes 2 tokens because unfrozen balance is not enough for the transfer"
+    "Forced transfer successful"
+    (RWA.mvp-token.forced-transfer "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 34.0))
+      
+    (expect "events"
+      [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["transfer-manager"]} 
+        {"name": "RWA.mvp-token.TRANSFER","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b" 34.0]} 
+        {"name": "RWA.mvp-token.TOKENS-UNFROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 2.0]} 
+        {"name": "RWA.mvp-token.RECONCILE","params": [34.0 {"account": "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef","current": 13.0,"previous": 47.0} {"account": "k:b11f0b8ae271f0a0c85baeaf295d636d24609267d48852192e9ea58a392ed51b","current": 43.0,"previous": 9.0}]}
+      ]
+      (map (remove "module-hash")  (env-events true))
+    ) 
+
+    (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+      }]      
+    )
+
+    (expect "Agent with freezer role freezes 13 more partial tokens"
+      "Partial Tokens Unfrozen"
+      (RWA.mvp-token.unfreeze-partial-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 13.0)
+    )
+
+    (expect "events"
+      [ {"name": "RWA.mvp-token.ONLY-AGENT","params": ["freezer"]}
+        {"name": "RWA.mvp-token.TOKENS-UNFROZEN","params": ["k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 13.0]}
+      ]
+      (map (remove "module-hash")  (env-events true))
+    ) 
+(commit-tx)
+
+(begin-tx)
+
+(expect
+  "Return frozen balance of investor A"
+  0.0
+  (RWA.mvp-token.get-frozen-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"))
+
+
+(expect "returns compliance's max balance "
+  50.0
+  (RWA.mvp-token.max-balance-per-investor))
+
+(expect "returns compliance's supply limit "
+  90.0
+  (RWA.mvp-token.supply-limit))
+
+(commit-tx)
+
+
+(begin-tx "test only-agent")
+  
+  (expect-failure "only-agent fails without capability"
+    "Managed capability not installed: (RWA.mvp-token.ONLY-AGENT \"transfer-manager\""
+    (RWA.mvp-token.only-agent "transfer-manager"))
+
+    (env-sigs [
+      { 'key: 'wrongAgent
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")]
+      }]
+    )
+
+  (expect-failure "only-agent fails without capability"
+    "Keyset failure (keys-all): [ce1c07a5...]"
+    (RWA.mvp-token.only-agent "transfer-manager"))
+
+  (env-sigs [
+    { 'key: 'wrongAgent
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  
+  (expect-failure "only-agent fails without correct role"
+    "Managed capability not installed: (RWA.mvp-token.ONLY-AGENT \"transfer-manager\""
+    (RWA.mvp-token.only-agent "transfer-manager"))
+
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "transfer-manager")]
+      }]
+  )
+  
+  (expect "only-agent succeeds"
+    true
+    (RWA.mvp-token.only-agent "transfer-manager"))
+    
+(commit-tx)
+
+(begin-tx "register identity of the new wallet")
+
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9",
+    "investor-a-new": {
+      "keys": ["304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"],
+      "pred": "keys-all"}
+  })
+
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")]
+    }])
+
+  (expect "register-identity succeeds" 
+    true
+    (RWA.mvp-token.register-identity "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" (read-keyset 'investor-a-new) "" 1)
+  ) 
+
+(commit-tx)
+
+(begin-tx "test recovery-address when both old wallet and new wallet are unfrozen")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")
+               (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" 13.0)]
+      }]
+  )
+
+  (expect "recovery-address succeeds" 
+    true
+    (RWA.mvp-token.recovery-address "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" "")
+  )
+
+  (expect "new wallet is not frozen" false (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  
+(rollback-tx)
+
+(begin-tx "freeze old wallet before recovering to a new wallet")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.set-address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" true)
+(commit-tx)
+
+(begin-tx "test recovery-address when old wallet is frozen and new wallet is unfrozen")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")
+               (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" 13.0)]
+      }]
+  )
+
+  (expect "recovery-address succeeds" 
+    true
+    (RWA.mvp-token.recovery-address "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" "")
+  )
+
+  (expect "new wallet is frozen" true (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  
+(rollback-tx)
+
+(begin-tx "freeze new wallet before recovering old wallet")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.set-address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" true)
+(commit-tx)
+
+(begin-tx "test recovery-address when new wallet is frozen")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")
+               (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" 13.0)]
+      }]
+  )
+
+  (expect "recovery-address succeeds" 
+    true
+    (RWA.mvp-token.recovery-address "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" "")
+  )
+
+  (expect "new wallet stays frozen" true (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  
+(rollback-tx)
+
+(begin-tx "unfreeze old wallet")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.set-address-frozen "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" false)
+(commit-tx)
+
+(begin-tx "freeze old wallet partially and recover to a frozen new wallet")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+
+  (RWA.mvp-token.freeze-partial-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 3.0)
+
+(commit-tx)
+
+(begin-tx "test recovery-address when old wallet is partially frozen and new wallet is frozen")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")
+               (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" 13.0)]
+      }]
+  )
+
+  (expect "recovery-address succeeds" 
+    true
+    (RWA.mvp-token.recovery-address "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" "")
+  )
+
+  (expect "new wallet is frozen" true (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  (expect "new wallet's partially frozen balance is 0.0" 0.0 (RWA.mvp-token.get-frozen-tokens "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  ;; unfreeze new wallet and see the partial-frozen balance is recovered.
+  (RWA.mvp-token.set-address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" false)
+  (expect "new wallet's partially frozen balance is 3.0" 3.0 (RWA.mvp-token.get-frozen-tokens "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  (expect "new wallet is unfrozen" false (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+(rollback-tx)
+
+(begin-tx "Unfreeze old wallet completely and recover to a frozen new wallet")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+    { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "freezer")]
+    }]
+  )
+  (RWA.mvp-token.unfreeze-partial-tokens "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" 3.0)
+(commit-tx)
+
+(begin-tx "test recovery-address")
+  (env-data {
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+  (env-sigs [
+      { 'key: "ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+      ,'caps: [(RWA.mvp-token.ONLY-AGENT "agent-admin")
+               (RWA.mvp-token.TRANSFER "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" 13.0)]
+      }]
+  )
+
+  (expect "recovery-address succeeds" 
+    true
+    (RWA.mvp-token.recovery-address "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640" "")
+  )
+
+  (expect "new wallet is not partially frozen" 0.0 (RWA.mvp-token.get-frozen-tokens "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  (expect "new wallet is not frozen" true (RWA.mvp-token.address-frozen "k:304534cc12d4be044ae91420a2f95ef09e5638bc35b3258d48855cf0963a6640"))
+  
+(commit-tx)
+
+(begin-tx "re-registering a deleted identity succeeds")
+  (env-data {
+    "investor-a": {
+      "keys": ["c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef"], "pred": "keys-all"
+    },
+    "agent": "k:ce1c07a522dfa06667f96fcaed720df726e1af366a18e4d0cdb1de9338103ce9"
+  })
+
+  (env-sigs [
+    { 'key: 'owner
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]
+    }])
+    
+  (expect "Identity that has been registered and deleted can be registered again." 
+    true
+    (RWA.mvp-token.register-identity "k:c35687551e1234ac0105c4d65f3fd0dcb2436db5b5255bbf2781e54f9f7bc2ef" (read-keyset 'investor-a) "" 1)
+  )
+(commit-tx)
+
+(begin-tx "Test getters: paused, version, supply, investor-count")
+
+  ;; paused
+  (expect "Paused returns false initially"
+    false
+    (RWA.mvp-token.paused))
+
+  ;; version
+  (expect "Version returns 0.0"
+    "0.0"
+    (RWA.mvp-token.version))
+
+  ;; supply
+  (expect "Supply is correct"
+    59.0
+    (RWA.mvp-token.supply)) 
+
+  ;; investor-count
+  (expect "Investor count is 5"
+    5
+    (RWA.mvp-token.investor-count))
+
+  ;; name
+  (expect "Name returns 'mvp-token'"
+    "mvp-token"
+    (RWA.mvp-token.name))
+
+  ;; symbol
+  (expect "Symbol returns 'MVP'"
+    "MVP"
+    (RWA.mvp-token.symbol))
+
+  ;; kadenaID
+  (expect "KadenaID returns 'kadenaID'"
+    "kadenaID"
+    (RWA.mvp-token.kadenaID))
+
+(commit-tx)
+
+(begin-tx "Test set-name")
+  (env-sigs [
+    { 'key: 'owner
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]}
+  ])
+
+  (expect "Change name to 'new-mvp-token'"
+    "new-mvp-token"
+    (RWA.mvp-token.set-name "new-mvp-token"))
+
+  (expect "Name updated to 'new-mvp-token'"
+    "new-mvp-token"
+    (RWA.mvp-token.name))
+(commit-tx)
+
+(begin-tx "Test set-symbol")
+  (env-sigs [
+    { 'key: 'owner
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]}
+  ])
+  
+  (expect "Change symbol to 'NEW'"
+    "NEW"
+    (RWA.mvp-token.set-symbol "NEW"))
+
+  (expect "Symbol updated to 'NEW'"
+    "NEW"
+    (RWA.mvp-token.symbol))
+(commit-tx)
+
+(begin-tx "Test set-symbol")
+  (env-sigs [
+    { 'key: 'owner
+    ,'caps: [(RWA.mvp-token.ONLY-AGENT "owner")]}
+  ])
+
+  (expect "Change kadenaID to 'new-kadena-id'"
+    "new-kadena-id"
+    (RWA.mvp-token.set-kadenaID "new-kadena-id"))
+
+  (expect "KadenaID updated to 'new-kadena-id'"
+    "new-kadena-id"
+    (RWA.mvp-token.kadenaID))
+
+(commit-tx)
+
+(expect "Gas is within bounds" true (< (env-gas) 44000))

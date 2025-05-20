@@ -1,0 +1,52 @@
+alias: mvp-wallet
+seed: c3dmUk80R25ldlNOYWZGZ05OSExOdz09LnNUR0NoVVM1NmIyd2d4WDEuNGczOWRlb1pZdDY5WnZnYkNDaHJUNnBPbTNhMHZvNmJZTFh3OEkzOXpjOVZMT0ppUlVFMHpIY1lFc1ZteGhEWWZJbjd0cndhejZldmVvWUxaZzhvaW9KWWpXeFRKd2NHMk9vamMrZnRGTk09
+version: 1
+keys:
+  - publicKey: af9b8d9448c68b81519cda4879dab5308f3c5facef450ead7d45534ae1d257f8
+    index: 0
+  - publicKey: 8c806f9f6470a199718ba7bf336fb6c5723be132e2e6c0448f5fd7dff45e3386
+    index: 1
+  - publicKey: 929e05b703e610a1a85b2cbe22d449ef787bc02ef00b1a62c868b41820eee5ef
+    index: 2
+  - publicKey: e93dd8535dbde37b715c9f74f1d81584eb72a98dc5722c7da2070c28688706b6
+    index: 3
+  - publicKey: 9dd097513edb95a45af3211b9d3dc8c497991e4ef662b022267e126b804dce21
+    index: 4
+  - publicKey: c1413bbf67372e80109559163d1f83a2675bf73ac5f2b82efbdec4fdab470b2a
+    index: 5
+  - publicKey: 902e0c8bae8e429f65f59cb2ab3413ea2527d4f2d17ee523909cd9e639359291
+    index: 6
+    alias: compliance
+  - publicKey: 6c23a843cef32ef01b51d4bd1a8d59c5b398239b6a8b4a8a0970ee77e259d233
+    index: 7
+    alias: agentB
+  - publicKey: 724f36b7c14eb10d2d925f0f23340753f9a1cd19ed1614494f8e0f20e21d87e7
+    index: 8
+    alias: batch-investor
+  - publicKey: 56790d31f667c21b69374f9931143bac5bedcff5467e4db9dc7f0208bc29e361
+    index: 9
+    alias: batch-investor
+  - publicKey: b2378e33a4f1670b0591231351fe8f3bb6cf1e65a5ec93b3c64d31378b87cb7c
+    index: 10
+    alias: batch-investor
+  - publicKey: 14f877de5458cbfab39794b929f95f44fca8b8c2d197ca0b55e4805c64310a8a
+    index: 11
+    alias: batch-investor
+  - publicKey: 8cb897395718116dfad4d415f5686e19157fe9ce7617b7fc70bb9289dbae8c95
+    index: 12
+    alias: batch-investor
+  - publicKey: 159078a8b841f83150655c67423a815f692ff0c6c02843cdde9fa435e799f348
+    index: 13
+    alias: batch-investor
+  - publicKey: 4cc612c34aba9a969ac2e5919f187036b4860ca9250ab0a3bdad32eda5571862
+    index: 14
+    alias: batch-investor
+  - publicKey: 294bd1646625012b51afb896cf2c5ecc33706855e62191bfc6edfd52e2db77f8
+    index: 15
+    alias: batch-investor
+  - publicKey: ce3b81ee1faa3a808ed6b68294ea1a6e5ffbd5bf02c1f5ab9a9bccf99b06e426
+    index: 16
+    alias: batch-investor
+  - publicKey: 140d77a14674065e4db8ad104064bf866ead57d19cbef38db2242a6e24265e68
+    index: 17
+    alias: batch-investor

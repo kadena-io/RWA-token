@@ -1,0 +1,11 @@
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @ggobugi27 and @jermaine150 will be requested for
+# review when someone opens a pull request.
+*       @ggobugi27 @jermaine150
+
+# Order is important; the last matching pattern takes the most
+# precedence. When someone opens a pull request that only
+# modifies pact files, only @pact-owner and not the global
+# owner(s) will be requested for a review.
+*.pact    @ggobugi27 #Hee Kyun

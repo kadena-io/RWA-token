@@ -1,0 +1,23 @@
+code: |-
+  (RWA.mvp-token.register-identity (read-string 'investor) (read-keyset 'investor-keyset) "" 1)
+data:
+  investor: {{account:investorB}}
+  investor-keyset:
+    keys: ["{{key:investorB}}"]
+    pred: "keys-all"
+signers:
+  - public: {{key:owner}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["owner"]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

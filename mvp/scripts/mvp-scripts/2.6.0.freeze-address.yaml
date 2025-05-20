@@ -1,0 +1,21 @@
+code: |-
+  (RWA.mvp-token.set-address-frozen  (read-string 'investor) true)
+signers:
+  - public: {{key:agent}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["freezer"]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+  agent: {{account:agent}}
+  investor: {{account:investorA}}
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

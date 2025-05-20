@@ -1,0 +1,23 @@
+code: |-
+  (RWA.mvp-token.mint (read-string 'investor) 21.0)
+signers:
+  - public: {{key:agent}}
+    caps:
+      - name: "RWA.mvp-token.ONLY-AGENT"
+        args: ["transfer-manager"]
+      - name: "RWA.mvp-token.TRANSFER"
+        args: ["",  "{{account:investorB}}", 21.0]
+  - public: {{key:sender}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+  agent: {{account:agent}}
+  investor: {{account:investorB}}
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:sender}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600
