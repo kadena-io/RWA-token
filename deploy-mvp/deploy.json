@@ -104,7 +104,7 @@
     },
     {
       "profile": "default",
-      "codeFile": "../mvp/token-mapper.pact",
+      "codeFile": "../mvp/token-mapper-v1.pact",
       "data": {
         "ns": "RWA"
       },
@@ -122,7 +122,7 @@
     },
     {
       "profile": "default",
-      "codeFile": "../mvp/compliances/max-investors-compliance.pact",
+      "codeFile": "../mvp/compliances/max-investors-compliance-v1.pact",
       "data": {
         "ns": "RWA"
       },
@@ -131,7 +131,7 @@
     },
     {
       "profile": "default",
-      "codeFile": "../mvp/compliances/max-balance-compliance.pact",
+      "codeFile": "../mvp/compliances/max-balance-compliance-v1.pact",
       "data": {
         "ns": "RWA"
       },
@@ -140,7 +140,7 @@
     },
     {
       "profile": "default",
-      "codeFile": "../mvp/compliances/supply-limit-compliance.pact",
+      "codeFile": "../mvp/compliances/supply-limit-compliance-v1.pact",
       "data": {
         "ns": "RWA"
       },
