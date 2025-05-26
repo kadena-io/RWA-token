@@ -1,0 +1,32 @@
+code: |-
+  (ns.write-registry (read-string 'ns) (read-keyset 'ks) true)
+  (define-namespace (read-string 'ns) (read-keyset 'ks) (read-keyset 'ks))
+  ;; test namespace rotation
+  (define-namespace (read-string 'ns) (read-keyset 'ks) (read-keyset 'ks))
+  ;; test namespace access
+  (namespace "RWA")
+  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'admin-keyset))
+  ;; test keyset rotation
+  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'admin-keyset))
+signers:
+  - public: {{key:gas-payer}}
+    caps: []
+  - public: {{key:ns-operate-signer}}
+    caps: []
+data:
+  ns: "{{RWA_namespace}}"
+  ks:
+    keys: 
+      - {{key:RWA-admin-keyset-1}}
+      - {{key:RWA-admin-keyset-2}}
+      - {{key:RWA-admin-keyset-3}}
+      - {{key:RWA-admin-keyset-4}}
+      - {{key:RWA-admin-keyset-5}}
+    pred: {{pred:RWA-admin-keyset}}
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:gas-payer}}
+  gasLimit: 5000
+  gasPrice: 0.0000001
+  ttl: 600
