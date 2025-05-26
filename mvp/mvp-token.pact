@@ -1517,7 +1517,6 @@
 )
 
 (if (read-msg "is_upgrade")
-  
   "Upgrade complete"
   (do 
     (create-table token)

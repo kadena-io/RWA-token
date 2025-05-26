@@ -21,7 +21,7 @@
 ; ## 1. Issuer (Owner) Contract Creation:
 (begin-tx "Load contracts")
 
-  ;; Create `rwa-admin-keyset`
+  ;; Create `RWA.rwa-admin-keyset`
   (env-data {
     "admin-keyset": {"keys": ["admin"], "pred": "keys-all"}
     })
