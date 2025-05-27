@@ -5,9 +5,9 @@ code: |-
   (define-namespace (read-string 'ns) (read-keyset 'ks) (read-keyset 'ks))
   ;; test namespace access
   (namespace "RWA")
-  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'admin-keyset))
+  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'ks))
   ;; test keyset rotation
-  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'admin-keyset))
+  (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'ks))
 signers:
   - public: {{key:gas-payer}}
     caps: []
