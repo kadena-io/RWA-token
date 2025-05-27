@@ -29,9 +29,4 @@
   )
 )
 
-(if (read-msg "is_upgrade")
-  "Upgrade complete"
-  (create-table tokens)
-)
-
-(enforce-keyset GOV-KEYSET)
+(create-table tokens)

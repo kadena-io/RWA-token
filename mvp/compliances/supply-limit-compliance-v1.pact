@@ -87,5 +87,3 @@
     false
   )
 )
-
-(enforce-keyset GOV-KEYSET)

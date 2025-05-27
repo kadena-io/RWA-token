@@ -32,7 +32,7 @@ git clone https://github.com/kadena-io/RWA-token.git
 Navigate to the deployment directory and install the necessary dependencies:
 
 ```bash
-cd RWA-token/deploy-mvp/devnet
+cd RWA-token/deploy-mvp
 pnpm i
 ```
 
