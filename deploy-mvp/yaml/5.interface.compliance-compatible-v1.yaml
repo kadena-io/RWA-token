@@ -1,4 +1,4 @@
-codeFile: ../../../mvp/compliances/compliance-compatible-v1.pact
+codeFile: ../mvp/compliances/compliance-compatible-v1.pact
 signers:
   - public: {{key:RWA-admin-keyset-1}}
     caps: []

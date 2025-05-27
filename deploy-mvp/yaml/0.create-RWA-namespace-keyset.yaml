@@ -9,10 +9,12 @@ code: |-
   ;; test keyset rotation
   (define-keyset "RWA.rwa-admin-keyset" (read-keyset 'ks))
 signers:
-  - public: {{key:gas-payer}}
-    caps: []
   - public: {{key:ns-operate-signer}}
     caps: []
+  - public: {{key:gas-payer}}
+    caps:
+      - name: "coin.GAS"
+        args: []
 data:
   ns: "{{RWA_namespace}}"
   ks:
