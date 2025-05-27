@@ -23,7 +23,7 @@ Real World Asset (RWA) tokens represent ownership of physical or non-blockchain 
   - [Compliance rules implementations](./mvp/compliances/)
   - [Test scripts](./mvp/scripts/)
 
-- **[Deployment](./deploy-mvp)**: Contains scripts and configurations for deploying the MVP implementation on Kadena Devnet
+- **[Deployment](./deploy-mvp/devnet/)**: Contains scripts and configurations for deploying the MVP implementation on Kadena Devnet
 
 ## Documentation
 
@@ -32,5 +32,5 @@ Each directory has a dedicated README with further details on its contents and u
 - [Architecture Decisions](./contracts/ADR.md): Specific design decisions
 - [MVP Implementation Details](./mvp/README.md): Detailed documentation of the MVP token implementation
 - [References](./mvp/references.md): Complete reference of all functions, capabilities, and error codes
-- [Deployment Guide](./deploy-mvp/README.md): Instructions for deploying the contracts to Kadena Devnet
+- [Deployment Guide](./deploy-mvp/devnet/README.md): Instructions for deploying the contracts to Kadena Devnet
 - [Script Guide](./mvp/scripts/README.md): Detailed guide for running the MVP features on Kadena Devnet

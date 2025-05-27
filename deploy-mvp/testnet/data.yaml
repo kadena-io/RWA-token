@@ -1,0 +1,15 @@
+RWA_namespace: "RWA"
+network:networkId: testnet04
+chain-id: 
+
+key:ns-operate-signer:
+key:RWA-admin-keyset-1:
+key:RWA-admin-keyset-2:
+key:RWA-admin-keyset-3:
+key:RWA-admin-keyset-4:
+key:RWA-admin-keyset-5:
+pred:RWA-admin-keyset: 
+
+key:gas-payer: 
+account:gas-payer: 
+

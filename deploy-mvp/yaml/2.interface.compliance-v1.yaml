@@ -1,0 +1,17 @@
+codeFile: ../contracts/compliance/compliance-v1.pact
+signers:
+  - public: {{key:RWA-admin-keyset-1}}
+    caps: []
+  - public: {{key:gas-payer}}
+    caps:
+      - name: "coin.GAS"
+        args: []
+data:
+  ns: "{{RWA_namespace}}"
+networkId: {{network:networkId}}
+publicMeta:
+  chainId: "{{chain-id}}"
+  sender: {{account:gas-payer}}
+  gasLimit: 100000
+  gasPrice: 0.0000001
+  ttl: 600

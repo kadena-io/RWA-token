@@ -1516,10 +1516,16 @@
   )
 )
 
-(create-table token)
-(create-table investors)
-(create-table compliance-parameters)
-(create-table agents)
-(create-table identities)
+(if (read-msg "is_upgrade")
+  "Upgrade complete"
+  (do 
+    (create-table token)
+    (create-table investors)
+    (create-table compliance-parameters)
+    (create-table agents)
+    (create-table identities)
+    (RWA.token-mapper-v1.add-token-ref TOKEN-ID RWA.mvp-token)
+  )
+)
 
-(RWA.token-mapper-v1.add-token-ref TOKEN-ID RWA.mvp-token)
+(enforce-keyset GOV-KEYSET)
