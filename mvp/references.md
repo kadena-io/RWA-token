@@ -268,36 +268,33 @@
 Documents error codes used in the contract to handle specific failure conditions.
 
 **PAUSE**
-- `PAU-001` : Contract is already paused
-- `PAU-002` : Contract is already unpaused
+- `PAU-001` : Contract is already paused.
+- `PAU-002` : Contract is already unpaused.
 
 **Identity**
-- `IDR-001`: User is not registered
+- `IDR-001`: User is not registered.
 - `IDR-002`: User must have a zero balance before identity removal.
-- `IDR-REC-001`: User with balance of 0.0 cannot be recovered. 
 - `IDR-REC-001`: User with balance of 0.0 cannot be recovered. 
 
 **Account**
 protocol
-- `ACC-PRT-001`: Reserved protocol guard violation:
-- `ACC-PRT-002`: Invalid sender or receiver
-- `ACC-PRT-001`: Reserved protocol guard violation:
-- `ACC-PRT-002`: Invalid sender or receiver
+- `ACC-PRT-001`: Reserved protocol guard violation.
+- `ACC-PRT-002`: Invalid sender or receiver.
 
 freeze
 - `ACC-FRZ-001`: Account is frozen. Partial freeze is not available.  
+- `ACC-FRZ-002`: Account is already frozen/unfrozen. 
 - `ACC-AMT-001`: Account has insufficient funds.
 
 **Transfer**
-- `TRF-ACC-001`: Same sender and receiver
+- `TRF-ACC-001`: Same sender and receiver.
 - `TRF-PAUSE-001`: Transfer is not permitted because contract is paused.
-- `TRF-AMT-002`: Transfer amount must be positive
+- `TRF-AMT-002`: Transfer amount must be positive.
 - `TRF-MGR-001`: Managed Transfer Capability balance has exceeded.
 - `TRF-CAP-001`: Transfer capability was not achieved.
 
 **Freeze**
 - `FRZ-AMT-002`: Frozen amount exceeds available balance.
-- `FRZ-AMT-003`: Amount to freeze or unfreeze must be positive.
 - `FRZ-AMT-003`: Amount to freeze or unfreeze must be positive.
 - `FRZ-AMT-004`: Amount to unfreeze must be positive.
 
@@ -306,27 +303,23 @@ freeze
 - `ROL-002`: Role does not exist in predefined agent roles.
 - `ROL-003` : Too many roles are added.
 - `ROL-STS-001`: Agent cannot be added if the agent is already active.
-- `ROL-STS-002`: Agent is not active. 
+- `ROL-STS-002`: Agent is not active.
 
 **General**
 - `GEN-IMPL-001`: Function exists to implement interface, but is not being used.
 - `GEN-IMPL-002`: Attempted to update value same as the current one.
-- `GEN-IMPL-002`: Attempted to update value same as the current one.
 
 **Compliances** 
-- `CMPL-MBPI-001`: Max-investor-per-balance is invalid
+- `CMPL-MBPI-001`: Max-investor-per-balance is invalid.
 - `CMPL-MBPI-002`: Account balance exceeds max balance per investor after transfer.
 - `CMPL-MBPI-003`: Account balance exceeds max balance per investor after mint. 
-- `CMPL-MBPI-003`: Account balance exceeds max balance per investor after mint. 
-- `CMPL-MI-001`: Max investors is invalid 
+- `CMPL-MI-001`: Max investors is invalid.
 - `CMPL-MI-002`: Investor count exceeds max investor after transfer.
 - `CMPL-MI-003`: Investor count exceeds max investor after mint.
 - `CMPL-MI-004`: Max investor set below current investor count.
 - `CMPL-MI-005`: Investor count cannot be below 0. 
-- `CMPL-MI-004`: Max investor set below current investor count.
-- `CMPL-MI-005`: Investor count cannot be below 0. 
-- `CMPL-SL-001`: Supply limit parameter is invalid 
-- `CMPL-SL-002`: Supply exceeds supply-limit after mint
+- `CMPL-SL-001`: Supply limit parameter is invalid.
+- `CMPL-SL-002`: Supply exceeds supply-limit after mint.
 - `CMPL-SL-003`: Supply limit set below current supply limit.
 - `CMPL-DUP-001`: Compliance list contains duplicates. 
 
