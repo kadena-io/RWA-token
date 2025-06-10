@@ -277,11 +277,8 @@ Documents error codes used in the contract to handle specific failure conditions
 - `IDR-REC-001`: User with balance of 0.0 cannot be recovered. 
 
 **Account**
-protocol
 - `ACC-PRT-001`: Reserved protocol guard violation.
 - `ACC-PRT-002`: Invalid sender or receiver.
-
-freeze
 - `ACC-FRZ-001`: Account is frozen. Partial freeze is not available.  
 - `ACC-FRZ-002`: Account is already frozen/unfrozen. 
 - `ACC-AMT-001`: Account has insufficient funds.
